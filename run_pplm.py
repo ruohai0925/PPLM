@@ -371,6 +371,12 @@ def get_bag_of_words_indices(bag_of_words_ids_or_paths: List[str], tokenizer) ->
             filepath = cached_path(BAG_OF_WORDS_ARCHIVE_MAP[id_or_path])
         else:
             filepath = id_or_path
+
+        print("filepath", filepath)
+        print("bag_of_words_ids_or_paths",bag_of_words_ids_or_paths )
+        print("BAG_OF_WORDS_ARCHIVE_MAP",BAG_OF_WORDS_ARCHIVE_MAP )
+        print("id_or_path", id_or_path)
+
         with open(filepath, "r") as f:
             words = f.read().strip().split("\n")
         bow_indices.append(
@@ -799,10 +805,16 @@ def run_pplm_example(
     print(unpert_gen_text)
     print()
 
+    # print to a file
+    outputfile = "output.txt"
+    print("Unperturbed text = ",  file=open(outputfile, "a"))
+    print(unpert_gen_text, file=open(outputfile, "a"))
+
     generated_texts = []
 
     bow_word_ids = set()
     if bag_of_words and colorama:
+        print("bag_of_words", bag_of_words)
         bow_indices = get_bag_of_words_indices(bag_of_words.split(";"),
                                                tokenizer)
         for single_bow_list in bow_indices:
@@ -834,6 +846,11 @@ def run_pplm_example(
             print("= Perturbed generated text {} =".format(i + 1))
             print(pert_gen_text)
             print()
+
+            # print to a file
+            print("Perturbed text {} =".format(i+1),  file=open(outputfile, "a"))
+            print(pert_gen_text, file=open(outputfile, "a"))
+
         except:
             pass
 
@@ -846,91 +863,99 @@ def run_pplm_example(
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument(
-        "--pretrained_model",
-        "-M",
-        type=str,
-        default="gpt2-medium",
-        help="pretrained model name or path to local checkpoint",
-    )
-    parser.add_argument(
-        "--cond_text", type=str, default="The lake",
-        help="Prefix texts to condition on"
-    )
-    parser.add_argument(
-        "--uncond", action="store_true",
-        help="Generate from end-of-text as prefix"
-    )
-    parser.add_argument(
-        "--num_samples",
-        type=int,
-        default=1,
-        help="Number of samples to generate from the modified latents",
-    )
-    parser.add_argument(
-        "--bag_of_words",
-        "-B",
-        type=str,
-        default=None,
-        help="Bags of words used for PPLM-BoW. "
-             "Either a BOW id (see list in code) or a filepath. "
-             "Multiple BoWs separated by ;",
-    )
-    parser.add_argument(
-        "--discrim",
-        "-D",
-        type=str,
-        default=None,
-        choices=("clickbait", "sentiment", "toxicity", "generic"),
-        help="Discriminator to use",
-    )
-    parser.add_argument('--discrim_weights', type=str, default=None,
-                        help='Weights for the generic discriminator')
-    parser.add_argument('--discrim_meta', type=str, default=None,
-                        help='Meta information for the generic discriminator')
-    parser.add_argument(
-        "--class_label",
-        type=int,
-        default=-1,
-        help="Class label used for the discriminator",
-    )
-    parser.add_argument("--length", type=int, default=100)
-    parser.add_argument("--stepsize", type=float, default=0.02)
-    parser.add_argument("--temperature", type=float, default=1.0)
-    parser.add_argument("--top_k", type=int, default=10)
-    parser.add_argument(
-        "--sample", action="store_true",
-        help="Generate from end-of-text as prefix"
-    )
-    parser.add_argument("--num_iterations", type=int, default=3)
-    parser.add_argument("--grad_length", type=int, default=10000)
-    parser.add_argument(
-        "--window_length",
-        type=int,
-        default=0,
-        help="Length of past which is being optimized; "
-             "0 corresponds to infinite window length",
-    )
-    parser.add_argument(
-        "--horizon_length",
-        type=int,
-        default=1,
-        help="Length of future to optimize over",
-    )
-    parser.add_argument("--decay", action="store_true",
-                        help="whether to decay or not")
-    parser.add_argument("--gamma", type=float, default=1.5)
-    parser.add_argument("--gm_scale", type=float, default=0.9)
-    parser.add_argument("--kl_scale", type=float, default=0.01)
-    parser.add_argument("--seed", type=int, default=0)
-    parser.add_argument("--no_cuda", action="store_true", help="no cuda")
-    parser.add_argument("--colorama", action="store_true",
-                        help="colors keywords")
-    parser.add_argument("--verbosity", type=str, default="very_verbose",
-                        choices=(
-                            "quiet", "regular", "verbose", "very_verbose"),
-                        help="verbosiry level")
 
-    args = parser.parse_args()
-    run_pplm_example(**vars(args))
+    # set the cond_text
+    restaurant_related_cond_text_default = ["Would you like", "Can I get", "The food looks", "I'd recommend", 
+                                            "Could I have your menu", "How is the beer", "How is the pizza", 
+                                            "Where do you plan to go", "That'll be", "Are you waiting"]    
+    len_of_text = len(restaurant_related_cond_text_default)
+
+    for i in range(len_of_text):
+        parser = argparse.ArgumentParser()
+        parser.add_argument(
+            "--pretrained_model",
+            "-M",
+            type=str,
+            default="gpt2-medium",
+            help="pretrained model name or path to local checkpoint",
+        )
+        parser.add_argument(
+            "--uncond", action="store_true",
+            help="Generate from end-of-text as prefix"
+        )
+        parser.add_argument(
+            "--num_samples",
+            type=int,
+            default=1,
+            help="Number of samples to generate from the modified latents",
+        )
+        parser.add_argument(
+            "--bag_of_words",
+            "-B",
+            type=str,
+            default=None,
+            help="Bags of words used for PPLM-BoW. "
+                 "Either a BOW id (see list in code) or a filepath. "
+                 "Multiple BoWs separated by ;",
+        )
+        parser.add_argument(
+            "--discrim",
+            "-D",
+            type=str,
+            default=None,
+            choices=("clickbait", "sentiment", "toxicity", "generic"),
+            help="Discriminator to use",
+        )
+        parser.add_argument('--discrim_weights', type=str, default=None,
+                            help='Weights for the generic discriminator')
+        parser.add_argument('--discrim_meta', type=str, default=None,
+                            help='Meta information for the generic discriminator')
+        parser.add_argument(
+            "--class_label",
+            type=int,
+            default=-1,
+            help="Class label used for the discriminator",
+        )
+        parser.add_argument("--length", type=int, default=100)
+        parser.add_argument("--stepsize", type=float, default=0.02)
+        parser.add_argument("--temperature", type=float, default=1.0)
+        parser.add_argument("--top_k", type=int, default=10)
+        parser.add_argument(
+            "--sample", action="store_true",
+            help="Generate from end-of-text as prefix"
+        )
+        parser.add_argument("--num_iterations", type=int, default=3)
+        parser.add_argument("--grad_length", type=int, default=10000)
+        parser.add_argument(
+            "--window_length",
+            type=int,
+            default=0,
+            help="Length of past which is being optimized; "
+                 "0 corresponds to infinite window length",
+        )
+        parser.add_argument(
+            "--horizon_length",
+            type=int,
+            default=1,
+            help="Length of future to optimize over",
+        )
+        parser.add_argument("--decay", action="store_true",
+                            help="whether to decay or not")
+        parser.add_argument("--gamma", type=float, default=1.5)
+        parser.add_argument("--gm_scale", type=float, default=0.9)
+        parser.add_argument("--kl_scale", type=float, default=0.01)
+        parser.add_argument("--seed", type=int, default=0)
+        parser.add_argument("--no_cuda", action="store_true", help="no cuda")
+        parser.add_argument("--colorama", action="store_true",
+                            help="colors keywords")
+        parser.add_argument("--verbosity", type=str, default="very_verbose",
+                            choices=(
+                                "quiet", "regular", "verbose", "very_verbose"),
+                            help="verbosiry level")
+
+        parser.add_argument(
+            "--cond_text", type=str, default=restaurant_related_cond_text_default[i],
+            help="Prefix texts to condition on"
+        )
+        args = parser.parse_args()
+        run_pplm_example(**vars(args))
